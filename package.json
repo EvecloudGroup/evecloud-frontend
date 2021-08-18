@@ -1,0 +1,62 @@
+{
+  "name": "Evecloud",
+  "description": "Learning platform.",
+  "version": "0.0.1",
+  "author": "Martin Jakobsson",
+  "main": "main.js",
+  "email": "eveapp2021@gmail.com",
+  "maintainer": "Martin Jakobsson",
+  "build": {
+    "appId": "com.electron.evecloud",
+    "extends": null,
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "reload.js",
+      "package.json"
+    ],
+    "dmg": {
+      "title": "Evecloud",
+      "contents": [
+        {
+          "x": 110,
+          "y": 150
+        },
+        {
+          "x": 240,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ]
+    },
+    "win": {
+      "target": "NSIS",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": true
+    }
+  },
+  "scripts": {
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "postinstall": "electron-builder install-app-deps",
+  "devDependencies": {
+    "electron": "^13.2.1",
+    "electron-builder": "^22.11.7"
+  }
+}

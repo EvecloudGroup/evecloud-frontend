@@ -1,0 +1,90 @@
+Welcome to Eve!
+
+This is an alpha release which does mean that the product may consist of bugs here and there. Therefore there are a few things you need to know: when working in Eve please do export the database frequently via the profile page. This means that you will save all your content on your local store which you will be able to import later on if something goes wrong. The platform has only been tested on Safari and Chrome, avoid internet explorer when using Eve. If you find any bugs please report them asap for us to fix them as fast as possible. This can be done via the bugs channel. Any recommendation for a new feature? Then there is a suggestions channel for this. 
+
+Quick start:
+1. Write down the ID, this works as a password. There is no need for a mail
+2. When you are logged in, go to the shortcut pages via the face in the top right corner and press shortcuts. Here you will see all shortcuts and for changing a shortcut just press the new keyboard combination
+3. Now go to the main window and you can start processing your content. If you want image occlusion just drag and drop an image to the window and start to draw rectangles and press the shortcut for generating an image occlusion (can be found in the shortcut window)
+4. Start training will go through all your collection (images, extract, and clozes) with SM-2 algorithm. Use the spacebar as default to show the answer and CTRL + 1 - 5 to rate the card from very hard to very easy.
+
+Functions currently supported:
+- Cloze deletions
+- Image occlusions
+- Incremental reading
+- Similar content (parsing words from Oxford and articles from Wikipedia)
+- Profile (Cards due, total repetitions)
+- Customizable keyboard shortcuts
+- Export database
+- Import database
+- Zen Mode
+- Dark Mode
+- Learning mode
+- SM-2 for image occlusions and clozes
+- Information structure with folders fully customizable
+
+
+Q: What is EVE?
+A: Eve is specifically tailored for evidence-based effective studying with help of evidence-based methods such as spaced repetition (SM2), interleaved practice, and incremental reading.
+
+
+Q: How do I come in contact?
+A: Send us a message on Discord (MirrorNeuron#1929) or join our channel: https://discord.gg/2xkMPmcGZh.
+
+Q: How do I report a bug?
+A: Please do post it in the bugs channel at Discord.
+
+Q: How do I suggest a feature?
+A: Send a message on the suggestion channel at Discord.
+
+Q: How is Eve different from SuperMemo?
+A: Eve is web-based which means it will run on all systems (even the smartphone). In regards to the algorithm, Eve is using SM2 instead of SM18 which probably will make some difference in lifelong learning and especially when there is a lot of information in the database. There is also a function in Eve which is called "Similar content" which means that for each selected word it will send a request to Oxford and Wikipedias API to extract the meaning of the word and similar related concepts. This is great because it will help the user with the coherence of the concept.
+
+
+
+
+**How to make an image occlusion**
+1. Drop an image in the main working window
+2. Start to drag on the window to create occlusions
+3. When all occlusions are done, press your shortcut (default: CTRL + Z)
+4. Now you will see the image in the left sidebar
+
+**How to make a cloze**
+1. Select the text you want to make a cloze of in the main working window
+2. Press the shortcut for closure (default: CTRL + C)
+
+**How to make a text extract for IR (incremental reading)**
+1. Select the text you want to extract from the main working window
+2. Press the shortcut for text extraction (default: CTRL + X)
+
+**How to rename an item (folder, image, or extract)**
+1. Right-click on the item in the left sidebar 
+2. Select the renamed item and enter the name in the input
+
+**How to remove an item from the information tree**
+1. Right-click on the item and press remove
+
+**How to create a folder**
+1. Right-click on the folder you want to make a folder in
+2. Select create folder and enter the name of the folder in the input field
+
+**How to create an empty text document**
+1. Right-click in the left sidebar on an item and press create text
+
+
+
+**Layout**
+The layout consists of one sidebar to the left, one main working window in the middle, a sidebar to the right, and a header.
+
+**The header**
+1. Profile /settings (Due count, Cloze count, Folder count, export and import database)
+2. Zen mode (remove distractions and keep only necessary things visible)
+3. Dark mode
+
+**The left sidebar**
+1. The engage button is used for training with help of SM-2. It will start and shuffle through your content (images, clozes, and extracts). You will press space to show the answer then grade how well you remember the item with (default CTRL + 1 - 5) and then it will show you the next item.
+2. The information tree consists of all your content (images, closures, and extracts)
+3. The context menu. Right-click on an item and you will see a menu
+
+**The right sidebar**
+This area is used for a similar context. It will in realtime make an image search and context search to find similar information as the word you have currently highlighted. If you hover the text or images on the right sidebar it will display the image as zoomed in and the text when hovering
