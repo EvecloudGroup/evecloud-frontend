@@ -60,14 +60,15 @@
     let os = getOS();
     let is64Bit = is64bit();
 
-    if(os == "Mac OS" && is64Bit == true)
-    window.location.replace("https://github.com/EvecloudGroup/evecloud/releases/download/v0.0.1/Evecloud-0.0.1-mac.dmg")
-    else if (os == "Mac OS" && is64Bit == false) 
+    if(os == "Mac OS" && is64Bit == true) {
+      window.location.replace("https://github.com/EvecloudGroup/evecloud/releases/download/v0.0.1/Evecloud-0.0.1-mac.dmg")
+    } else if (os == "Mac OS" && is64Bit == false) {
       window.location.replace("https://github.com/EvecloudGroup/evecloud/releases/download/v0.0.1/Evecloud-0.0.1-mac_M1.dmg")
-    else if (os == "Windows" && is64Bit == true)
-      window.location = ""
-    else 
+    } else if (os == "Windows" && is64Bit == true) {
+      window.location.replace("https://github.com/EvecloudGroup/evecloud/releases/download/v0.0.1/Evecloud-0.0.1-windows.exe")
+    } else { 
       alert("Could not find your operation system.")
+    }
 
 
 
