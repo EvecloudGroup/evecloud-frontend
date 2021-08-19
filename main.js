@@ -8,7 +8,12 @@ function createWindow () {
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      // worldSafeExecuteJavaScript: true,
+      // contextIsolation: true,
+      // preload: path.join(app.getAppPath(), 'preload.js')
+      pathname: __dirname + 'index.html',
+      protocol: 'file:',
+      slashes: true
     }
   })
 

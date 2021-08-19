@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <title>Evecloud — Download</title>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Evecloud is studying platform based on effective methods for retention such as: Spaced repetition, Interleaved practice and Incremental reading.">
+  <meta name="keywords" content="SRS, Interleaved practive, Studying tool">
+  <meta name="author" content="Martin Jakobsson">
+  <meta name="msapplication-TileColor" content="#da532c">
+  <meta name="theme-color" content="#ffffff">
+
+  <link rel="icon" type="image/png" sizes="48x48" href="../assets/icons/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <!-- Hotjar Tracking Code for www.evecloud.io -->
+  <script>
+
+    function is64bit() {
+
+      if (navigator.userAgent.indexOf("WOW64") != -1 || 
+        navigator.userAgent.indexOf("Win64") != -1 ){
+        return true
+      } else {
+        return false
+      }
+
+    }
+
+  function getOS() {
+
+        var userAgent = window.navigator.userAgent,
+            platform = window.navigator.platform,
+            macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K', 'darwing'],
+            windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+            iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+            os = null;
+
+        if (macosPlatforms.indexOf(platform) !== -1) {
+          os = 'Mac OS';
+        } else if (iosPlatforms.indexOf(platform) !== -1) {
+          os = 'iOS';
+        } else if (windowsPlatforms.indexOf(platform) !== -1) {
+          os = 'Windows';
+        } else if (/Android/.test(userAgent)) {
+          os = 'Android';
+        } else if (!os && /Linux/.test(platform)) {
+          os = 'Linux';
+        }
+
+        return os;
+    }
+
+    let os = getOS();
+    let is64Bit = is64bit();
+
+    if(os == "Mac OS" && is64Bit == true)
+    window.location.replace("https://github.com/EvecloudGroup/evecloud/releases/download/v0.0.1/Evecloud-0.0.1-mac.dmg")
+    else if (os == "Mac OS" && is64Bit == false) 
+      window.location.replace("https://github.com/EvecloudGroup/evecloud/releases/download/v0.0.1/Evecloud-0.0.1-mac_M1.dmg")
+    else if (os == "Windows" && is64Bit == true)
+      window.location = ""
+    else 
+      alert("Could not find your operation system.")
+
+
+
+    (function(h,o,t,j,a,r){
+        h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+        h._hjSettings={hjid:2558869,hjsv:6};
+        a=o.getElementsByTagName('head')[0];
+        r=o.createElement('script');r.async=1;
+        r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+        a.appendChild(r);
+    })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+
+
+  </script>
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "2d41e999df48468493918d7056225980", "spa": true}'></script>
+
+</head>
+</html>
+
