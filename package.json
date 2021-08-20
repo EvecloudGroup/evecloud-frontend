@@ -2,15 +2,13 @@
   "name": "evecloud",
   "productName": "Evecloud",
   "description": "Learning platform.",
-  "version": "0.0.1",
+  "version": "0.0.0-development",
   "author": "Martin Jakobsson <eveapp2021@gmail.com>",
   "main": "main.js",
   "email": "eveapp2021@gmail.com",
   "maintainer": "Martin Jakobsson",
-  
   "homepage": "https://github.com/EvecloudGroup/evecloud#readme",
-  "url" : "https://github.com/EvecloudGroup/evecloud/issues",
-
+  "url": "https://github.com/EvecloudGroup/evecloud/issues",
   "build": {
     "appId": "com.electron.evecloud",
     "extends": null,
@@ -73,12 +71,18 @@
   "scripts": {
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "make-mac": "electron-forge make --platform darwin"
+    "make-mac": "electron-forge make --platform darwin",
+    "semantic-release": "semantic-release"
   },
   "postinstall": "electron-builder install-app-deps",
   "devDependencies": {
     "@electron-forge/cli": "6.0.0-beta.59",
     "electron": "13.2.1",
-    "electron-builder": "22.11.7"
+    "electron-builder": "22.11.7",
+    "semantic-release": "^17.4.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EvecloudGroup/evecloud.git"
   }
 }
