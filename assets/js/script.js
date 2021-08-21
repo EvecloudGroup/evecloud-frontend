@@ -8,12 +8,16 @@
 */
 //////////////////////////////////////////////////////////////////////
 
-const IS_DEVELOPMENT = 1
+
+let IS_DEVELOPMENT = 0
 const DATABASE_VERSION = "1.0.0"
 let BASE_URL = "https://development.eveapp2021.workers.dev/"
 
 if (!IS_DEVELOPMENT)
   BASE_URL = "https://production.eveapp2021.workers.dev/"
+
+if (location.hostname == "127.0.0.1" || location.hostname == "localhost")
+  IS_DEVELOPMENT = 1
 
 
 class Record {
@@ -116,9 +120,8 @@ class Profile {
       "extractCount": 0,
       "clozeCount": 0,
       "occlusionCount": 0,
-      "isDatabasePublic": false,
+      "isDatabasePublic": true,
       "tutorialCompleted": false,
-
 
       "mainWindowPadding": 8,
       "leftSidebarPadding": 8,
@@ -186,7 +189,6 @@ class ProfileManager {
 
     await localforage.clear()
     location.reload()
-    console.log("User logged out, localstorage cleared.")
 
   }
 
@@ -326,19 +328,10 @@ class ProfileManager {
 class DatabaseManager {
 
   constructor(id = createID(6)) {
-
       let ref = this
       this.timer = setInterval(this.onTick, 15 * 1000, ref);
       this.id = id;
-      this.password = ""
-      this.loggedIn = false
       this.lastSaved = new Date().toJSON()
-      // For the default version
-      // searchKey = bee52c1d2676f67615455073ad48d3e4
-      // aKey = 25c28ae7f22b19eb371daa2c15ca689c
-      //this.client = algoliasearch('PDX1VPASAS', '25c28ae7f22b19eb371daa2c15ca689c');
-      //this.index = this.client.initIndex(IS_DEVELOPMENT ? "Development" :  "Production");
-
       this.database = {
           "profile": new Profile(),
           "items" : [
@@ -964,14 +957,9 @@ class DatabaseManager {
               }),
           ],
       }
-
-      //this.init()
-
   }
 
   onTick(ref) {
-
-    // If change has happened to database, upload.
 
     if(ref.loggedIn) {
       databaseManager.saveLocalDatabase()
@@ -980,10 +968,6 @@ class DatabaseManager {
 
   }
 
-  async init() {
-      //await this.saveLocalDatabase()
-      //await this.loadRemoteDatabaseByID(this.id);
-  }
  
   getDatabaseID() {
     return this.id
@@ -1254,24 +1238,30 @@ class DatabaseManager {
 
   async getPublicDatabases() {
 
-    // Return list of databases
-    let response = await fetch(BASE_URL + "publicDatabases.json");
-    if(response.ok) {
-
-      let json = await response.json()
-      return json.databases
-      
-    } else {
-
-        graphicsManager.toggleAlert("Can not find public databases, please contact admin.", "warning")
     
-      }
+    const username = await localforage.getItem("username")
+    const password  = await localforage.getItem("password")
+
+    var myHeaders = new Headers()
+    myHeaders.append("Authorization", `Basic ${username}:${password}`)
+
+    var requestOptions = {
+      method: 'GET',
+      headers: myHeaders,
+    };
+
+    let res = await fetch("https://evecloud.io/public/data", requestOptions)
+    let response = await res.json()
+
+    if (response.error && response.error == 403)
+      return []
+    else 
+      return response.databases
+    
 
   }
 
   updateDatabase(database) {
-
-    
 
     if (database.profile.version != undefined) {
 
@@ -1442,90 +1432,113 @@ class DatabaseManager {
       await graphicsManager.triggerTutorial()
     }
 
-    this.id = username
-    this.password = password      
+    
+    var myHeaders = new Headers()
+    myHeaders.append("Authorization", `Basic ${username}:${password}`)
 
-    await localforage.setItem("username", username)
-    await localforage.setItem("password", password)
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+    };
+
+    let res = await fetch("https://evecloud.io/user/register", requestOptions)
+    let registerMessage = await res.json()
+
+    if (registerMessage.error == 420) {
+      graphicsManager.toggleAlert("This username is already taken. Try another one.", "warning")
+    } else if (registerMessage.error == 200) {
+
+      graphicsManager.renderFolders() 
+
+      
+      await localforage.setItem("username", username)
+      await localforage.setItem("password", password)
+      
+      graphicsManager.toggleAlert("You have now registered.", "success")
+      
+    }
 
   }
 
   async login(username, password) {
 
-    if (await this.userExistByID(username)) {
+    var myHeaders = new Headers()
+    myHeaders.append("Authorization", `Basic ${username}:${password}`)
 
-      let response = await this.loadDatabaseByID(username, password)
+    var requestOptions = {
+      method: 'GET',
+      headers: myHeaders,
+    };
 
-      if("profile" in response) {
+    let res = await fetch("https://evecloud.io/user/data", requestOptions)
+    let response = await res.json()
 
-        document.getElementById("modalbox-login").classList.remove("visible");
-        document.getElementById("modalbox-login").classList.add("hidden");
+    if (response.error && response.error == 403) {
+      graphicsManager.toggleAlert("You don't have access.", "warning")
+      this.register(username, password)
+    } else {
+      
+    
+      await localforage.setItem("username", username)
+      await localforage.setItem("password", password)
 
-        this.id = username
-        this.password = password      
-        this.loggedIn = true
-        this.database = this.updateDatabase(response)
 
-        if (!IS_DEVELOPMENT) {
+      document.getElementById("modalbox-login").classList.remove("visible");
+      document.getElementById("modalbox-login").classList.add("hidden");
+
+      this.id = username
+      this.password = password
+      this.loggedIn = true
+      this.database = this.updateDatabase(response)
+
+      if (!IS_DEVELOPMENT) {
           
-          if (this.database.profile.acceptedPolicy == false)
-            await graphicsManager.triggerPolicy()
+           if (this.database.profile.acceptedPolicy == false)
+             await graphicsManager.triggerPolicy()
 
-          if (this.database.profile.tutorialCompleted == false)
-            await graphicsManager.triggerTutorial()
+           if (this.database.profile.tutorialCompleted == false)
+             await graphicsManager.triggerTutorial()
 
-          document.getElementById("overlay").classList.remove("visible");
-          document.getElementById("overlay").classList.add("hidden");
+           document.getElementById("overlay").classList.remove("visible");
+           document.getElementById("overlay").classList.add("hidden");
 
-        } else {
+         } else {
 
-          this.database.profile.acceptedPolicy = true
-          this.database.profile.tutorialCompleted = true
-          document.getElementById("overlay").classList.remove("visible");
-          document.getElementById("overlay").classList.add("hidden");
+           this.database.profile.acceptedPolicy = true
+           this.database.profile.tutorialCompleted = true
+           document.getElementById("overlay").classList.remove("visible");
+           document.getElementById("overlay").classList.add("hidden");
 
-        }
+         }
 
 
 
-        if (this.database.profile.changelogViewed == false)
+         if (this.database.profile.changelogViewed == false)
           graphicsManager.triggerChangelog()
 
-        graphicsManager.renderFolders() 
+         graphicsManager.renderFolders() 
 
         
-        let r = this.database.items.find(r => r.contentType == "Extract")
-        if(r !== undefined) {
+         let r = this.database.items.find(r => r.contentType == "Extract")
+         if(r !== undefined) {
     
-          graphicsManager.renderInputBox(r)
-          graphicsManager.expandAllParentsToID(r.id)
+           graphicsManager.renderInputBox(r)
+           graphicsManager.expandAllParentsToID(r.id)
     
         }
 
-        // if(databaseManager.database.profile.showToolbar == false) {
-        //   document.getElementById("ql-").add("hidden")
+          if(databaseManager.database.profile.showToolbar == false) {
+            document.getElementById("ql-").add("hidden")
+          }
 
         setTheme(databaseManager.database.profile.theme)
         document.getElementById("mainwindow-padding-slider").value = databaseManager.database.profile.mainWindowPadding
         document.documentElement.style.setProperty('--mainWindow-padding', databaseManager.database.profile.mainWindowPadding + "px");
-
-        await localforage.setItem("username", username)
-        await localforage.setItem("password", password)
-
-      } else {
-      
-        graphicsManager.toggleAlert("Invalid username or password.", "warning")
-      
+        
+  
       }
 
-    } else {
-      
-      let response = this.register(username, password)
-    
-    }
-
   }
-
   // async loadSharedDatabase(username, password) {
 
   //   let response = await fetch(BASE_URL + id + ".json")
@@ -1559,98 +1572,66 @@ class DatabaseManager {
 
   // }
 
-  async loadDatabaseByID(username, password) {
 
-      let response = await fetch(BASE_URL + username + ".json")
-      if(response.ok) {
+  // Import public database to current user.
+  async importDatabaseByUsername(username) {
 
-        let data = await response.text()
-        if (data.includes("status")) {
+    var myHeaders = new Headers()
+    var requestOptions = {
+      method: 'GET',
+      headers: myHeaders,
+    };
 
-          return {}
+    let res = await fetch("https://evecloud.io/user/data/rere", requestOptions)
+    let response = await res.json()
 
-        } else if (data.includes("profile")) {
+    if (response.error && response.error == 403) {
+        graphicsManager.toggleAlert("You don't have access.", "warning")
+    } else {
+      this.database.data = response
+      graphicsManager.toggleAlert("Database has been imported.", "success")
+    }
 
-          return JSON.parse(data)
-
-        } else {
-
-          const decryptedData = this.decrypt(data, password)
-          if ( Object.keys(decryptedData).length === 0 ) {
-
-            return {}
-
-          } else {
-
-            const jsonResponse = JSON.parse(decryptedData)
-            if("profile" in jsonResponse)
-              return jsonResponse
-            else
-              return {}
-          
-            }
-
-        }
-
-      } else {
-
-        return {}
-
-      }
-
-      //this.pushAgoliaToRemote()
   }
-
 
 
   async saveLocalDatabase() {
 
     let r = this.getRecordByID(graphicsManager.activeInformationID)
     console.log(r)
+
     if (r !== null && r !== undefined)   {
 
       r.content = graphicsManager.quill.getContents()
  
     }
 
-    // Push database to backend
     this.lastSaved = new Date().toJSON()
-    //this.pushAgoliaToRemote()
+    //const encryptedData = this.encrypt(this.database, this.password)
 
-    const encryptedData = this.encrypt(this.database, this.password)
+    const username = await localforage.getItem("username")
+    const password  = await localforage.getItem("password")
 
-    await fetch(BASE_URL + this.id + ".json", {
-      method: "POST",
-      body: encryptedData
-    })
+    var myHeaders = new Headers()
+    myHeaders.append("Authorization", `Basic ${username}:${password}`)
+    myHeaders.append("Content-type", `application/json`)
 
-    // Update the time of update
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: JSON.stringify(this.database)
+    };
+
+    let res = await fetch("https://evecloud.io/user/data", requestOptions)
+    let response = await res.json()
+
+    if (response.error && response.error == 403) {
+      graphicsManager.toggleAlert("You don't have access for pushing a db to this username.", "warning")
+    }
+
     graphicsManager.saveLocalDatabase()
-
+    
   }
-
-  // pushAgoliaToRemote() {
-
-  //     // Add the database to index in Angolia.
-  //     var objects = []
-
-  //     for (const r of this.database.items) {
-
-  //       const textContent = this.deltaToRawText(r.content)
-  //       let newRecord = {
-  //             "objectID": databaseManager.id + "-" + r.id,
-  //             "username": databaseManager.id,
-  //             "content": textContent
-  //       }
-
-  //       objects.push(newRecord)
-        
-  //     }
-
-  //     // Upload to Agolia, search for a first name.
-  //     this.index.saveObjects(objects)
-
-  // }
 
   deltaToRawText(delta) {
 
@@ -1790,12 +1771,30 @@ class DatabaseManager {
   }
 
 
-  async removeDatabase() {
+  async deleteDatabase() {
 
     const accept = confirm("Are you sure you want to remove this account, this can not be undone.")
     if (accept) {
 
-      alert("Function coming soon...")
+      const username = await localforage.getItem("username")
+      const password = await localforage.getItem("password")
+
+      var myHeaders = new Headers()
+      myHeaders.append("Authorization", `Basic ${username}:${password}`)
+
+      var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+      };
+
+      let res = await fetch("https://evecloud.io/user/delete", requestOptions)
+      let response = await res.json()
+
+      if (response.error && response.error == 200) 
+        await profileManager.logout()
+      else 
+        graphicsManager.toggleAlert("Can not remove database.", "warning")
+      
 
     }
 
@@ -2046,41 +2045,59 @@ class DatabaseManager {
     return hashHex;
   }
 
-  async toggleDatabaseShare() {
-  
 
-      let response = await fetch(BASE_URL + "publicDatabases.json")
-      let publicDatabases = await response.json()
+  async makeDatabasePrivate() {
 
-      if(!publicDatabases.databases.includes(this.id)) {
+    const username = await localforage.getItem("username")
+    const password = await localforage.getItem("password")
 
-          databaseManager.database.profile.isDatabasePublic = true
-          publicDatabases.databases.push(this.id)
-          await fetch(BASE_URL + "publicDatabases.json", {
-            method: "POST",
-            body: JSON.stringify(publicDatabases)
-          })
+    var myHeaders = new Headers()
+    myHeaders.append("Authorization", `Basic ${username}:${password}`)
 
-          
-          graphicsManager.toggleDatabaseShare()
-          graphicsManager.toggleAlert("Database has been made public.", "success")
-        
-      } else {
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+    };
 
-        //Make private.
-        databaseManager.database.profile.isDatabasePublic = false
-        publicDatabases.databases = publicDatabases.databases.filter(e => e !== this.id)
-        await fetch(BASE_URL + "publicDatabases.json", {
-          method: "POST",
-          body: JSON.stringify(publicDatabases)
-        })
+    let res = await fetch("https://evecloud.io/user/set/public/false", requestOptions)
+    let response = await res.json()
 
-        graphicsManager.toggleDatabaseShare()
-        graphicsManager.toggleAlert("Database has been made private.", "success")
-
-      }
-
+    if (response.error && response.error == 200) {
+      databaseManager.database.profile.isDatabasePublic = false
+      graphicsManager.toggleAlert("Database has been made private.", "success")
+    } else {
+      graphicsManager.toggleAlert("Can not make database private.", "warning")
     }
+      
+  }
+  async makeDatabasePublic() {
+
+    const username = await localforage.getItem("username")
+    const password = await localforage.getItem("password")
+
+    var myHeaders = new Headers()
+    myHeaders.append("Authorization", `Basic ${username}:${password}`)
+    console.log(username)
+
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+    };
+
+    let res = await fetch("https://evecloud.io/user/set/public/true", requestOptions)
+    let response = await res.json()
+    console.log(response)
+
+    if (response.error && response.error == 200) {
+      databaseManager.database.profile.isDatabasePublic = true
+      graphicsManager.toggleAlert("Database has been made public.", "success")
+    } else {
+      graphicsManager.toggleAlert("Error, can not make database public.", "warning")
+    }
+
+
+
+  }
 
 
 
@@ -2999,10 +3016,7 @@ class GraphicsManager {
   async renderDatabases() {
 
     document.getElementById("database-list").innerHTML = "<tr><th>Shared databases</th></tr>"
-
     const publicIds =  await databaseManager.getPublicDatabases()
-    // const databases = await Promise.all(publicIds.map(async db => databaseManager.getDatabaseByID(db)))
-
     for (const id of publicIds) {
 
       console.log(id)
@@ -3018,8 +3032,7 @@ class GraphicsManager {
       items.innerHTML = "-"
 
       p.appendChild(name)
-      // p.appendChild(items)
-      // p.appendChild(author)
+      //p.appendChild(itemCount)
 
       document.getElementById("database-list").appendChild(p)
     }
@@ -3055,32 +3068,22 @@ class GraphicsManager {
   async onClickDatabaseItem(e) {
 
     let username = e.getAttribute("data-id")
-    let password = prompt("All your data in current database will be overwritten with shared database. Enter password for database: " + username)
-    
-    if (password != undefined && password != "") {
+    let password = prompt("All your data in current database will be overwritten with shared database. Write 'accept' to continue.")
+    if (password == "accept") {
       
-      console.log(username + " : " + password)
-      let response = await databaseManager.loadDatabaseByID(username, password)
-      console.log(response.length)
-      if("profile" in response) {
+      let response = await databaseManager.importDatabaseByUsername(username)
 
-        // Database login success, set id of database.
-        const savedId = databaseManager.database.profile.id
-        databaseManager.database = response
-        databaseManager.database.profile.id = savedId
-        databaseManager.id = savedId
+      // Database login success, set id of database.
+      const savedId = databaseManager.database.profile.id
+      databaseManager.database = response
+      databaseManager.database.profile.id = savedId
+      databaseManager.id = savedId
 
-        document.getElementById("modalbox-databases").classList.add("hidden")
-        document.getElementById("modalbox-databases").classList.remove("visible")
-        
-        this.renderFolders()
-        this.toggleAlert("Database loaded.", "success")
-
-      } else {
-
-        this.toggleAlert("Database could not load, try another password.", "warning")
-
-      }
+      document.getElementById("modalbox-databases").classList.add("hidden")
+      document.getElementById("modalbox-databases").classList.remove("visible")
+      
+      this.renderFolders()
+      this.toggleAlert("Database loaded.", "success")
 
     }
 
@@ -3578,18 +3581,11 @@ class GraphicsManager {
 
   toggleDatabaseShare() {
 
-    // const b = document.getElementById("modalbox-settings-database-shared-checkbox")
-
-
-    // if (databaseManager.database.profile.isDatabasePublic) {
-
-    //   b.classList.rem
-
-    // } else {
-
-    //   b.classList.remov
-
-    // }
+    const b = document.getElementById("modalbox-settings-database-shared-checkbox")
+    if (databaseManager.database.profile.isDatabasePublic) 
+      databaseManager.makeDatabasePrivate()
+    else
+      databaseManager.makeDatabasePublic()
 
   }
 
@@ -5552,7 +5548,7 @@ document.getElementById("header-statistics-button").addEventListener("click", e 
 // Event handler for public mode.
 document.getElementById("modalbox-settings-database-shared-checkbox").addEventListener("change", async e => {
 
-  await databaseManager.toggleDatabaseShare()
+  await graphicsManager.toggleDatabaseShare()
 
 })
 document.getElementById("modalbox-settings-ui-sidebar-show-checkbox").addEventListener("change", e => {
