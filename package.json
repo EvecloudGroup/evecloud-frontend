@@ -77,7 +77,7 @@
   "postinstall": "electron-builder install-app-deps",
   "devDependencies": {
     "@electron-forge/cli": "6.0.3",
-    "electron": "21.3.1",
+    "electron": "23.1.0",
     "electron-builder": "23.6.0",
     "semantic-release": "^19.0.5"
   },
