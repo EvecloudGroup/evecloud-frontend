@@ -1,23 +1,33 @@
 //////////////////////////// [TODO LIST] ////////////////////////////
 /*
 
+Updates since last time:
++ Domain has been moved to Cloudflare
++ Improved upload speed with Cloudflare images
++ Backblaze has been fully replaced with Cloudflare for storage
++ Font size slider has been added (Settings -> Interface)
+! Bubble poppup positioning fixed
 
 
-
+TODO:
 
 */
 //////////////////////////////////////////////////////////////////////
 
 
 let IS_DEVELOPMENT = 0
-const DATABASE_VERSION = "1.0.0"
-let BASE_URL = "https://development.eveapp2021.workers.dev/"
+let DATABASE_VERSION = "1.0.0"
+let BASE_URL = "https://production.eveapp2021.workers.dev/"
+let IMAGE_WORKER_URL = "https://image-worker.eveapp2021.workers.dev/"
 
-if (!IS_DEVELOPMENT)
-  BASE_URL = "https://production.eveapp2021.workers.dev/"
-
-if (location.hostname == "127.0.0.1" || location.hostname == "localhost")
+if (location.hostname == "127.0.0.1" || location.hostname == "localhost") {
   IS_DEVELOPMENT = 1
+  BASE_URL = "https://development.eveapp2021.workers.dev/"
+  IMAGE_WORKER_URL = "127.0.0.1/"
+  console.log("Mode set to: Development (localhost)")
+  document.title = "Development: Evecloud"
+}
+
 
 
 class Record {
@@ -126,6 +136,7 @@ class Profile {
       "mainWindowPadding": 8,
       "leftSidebarPadding": 8,
       "rightSidebarPadding": 8,
+      "fontSize": 18,
 
       "showLeftSidebar": true,
       "showRightSidebar": true,
@@ -1037,12 +1048,14 @@ class DatabaseManager {
 
   }
 
-  addImageOcclusions(separateOcclusions, id, occlusions = []) {
+
+  addImageOcclusions(separateOcclusions, id, url, occlusions = []) {
 
     // Check if image is visible, then display.
     if (document.getElementById("modalbox-occlusion-create").classList.contains("visible")) {
 
       let itemID = -1
+
       if(separateOcclusions) {
 
         let r = databaseManager.getRecordByID(graphicsManager.lastMenuItemClicked)
@@ -1055,7 +1068,7 @@ class DatabaseManager {
               itemID = r.id + "/" + createID(4) + "-" + id
               this.database.items.push(new Record({
                 id: itemID,
-                url: id,
+                "url": url,
                 contentType: "Occlusion",
                 occlusions: [occlusion]
               }))
@@ -1069,7 +1082,7 @@ class DatabaseManager {
             itemID = createID(4) + "-" + id
             this.database.items.push(new Record({
               id: itemID,
-              url: id,
+              "url": url,
               contentType: "Occlusion",
               occlusions: [occlusion]
             }))
@@ -1089,7 +1102,7 @@ class DatabaseManager {
             itemID = r.id + "/" + createID(4) + "-" + id
             this.database.items.push(new Record({
             id: itemID,
-            url: id,
+            "url": url,
             contentType: "Occlusion",
             occlusions: occlusions
             }))
@@ -1102,7 +1115,7 @@ class DatabaseManager {
           itemID = createID(4) + "-" + id
           this.database.items.push(new Record({
             id: itemID,
-            url: id,
+            "url": url,
             contentType: "Occlusion",
             occlusions: occlusions
           }))
@@ -1111,7 +1124,8 @@ class DatabaseManager {
       
       }
 
-      console.log(itemID)
+      console.log("Item ID: " + itemID)
+      console.log("Item URL: " + url)
       graphicsManager.renderFolders()
       graphicsManager.expandAllParentsToID(itemID)
       graphicsManager.toggleAlert("Image occlusions generated.", "success")
@@ -1299,6 +1313,10 @@ class DatabaseManager {
       database.profile.rightSidebarPadding = 4
       console.log("Database (rightSidebarPadding) set to: " + database.profile.rightSidebarPadding)
     }
+    if (database.profile.fontSize == undefined) {
+      database.profile.fontSize = 18
+      console.log("Database (fontSize) set to: " + database.profile.fontSize)
+    }
 
 
 
@@ -1455,6 +1473,7 @@ class DatabaseManager {
       await localforage.setItem("password", password)
       
       graphicsManager.toggleAlert("You have now registered.", "success")
+      console.log("New account has been registered.")
       
     }
 
@@ -1466,12 +1485,15 @@ class DatabaseManager {
     myHeaders.append("Authorization", `Basic ${username}:${password}`)
 
     var requestOptions = {
-      method: 'GET',
+      method: "GET",
       headers: myHeaders,
+      redirect: "follow"
     };
 
     let res = await fetch("https://evecloud.io/user/data", requestOptions)
     let response = await res.json()
+
+    console.log(response)
 
     if (response.error && response.error == 403) {
       graphicsManager.toggleAlert("You don't have access.", "warning")
@@ -1481,7 +1503,6 @@ class DatabaseManager {
     
       await localforage.setItem("username", username)
       await localforage.setItem("password", password)
-
 
       document.getElementById("modalbox-login").classList.remove("visible");
       document.getElementById("modalbox-login").classList.add("hidden");
@@ -1502,14 +1523,14 @@ class DatabaseManager {
            document.getElementById("overlay").classList.remove("visible");
            document.getElementById("overlay").classList.add("hidden");
 
-         } else {
+      } else {
 
            this.database.profile.acceptedPolicy = true
            this.database.profile.tutorialCompleted = true
            document.getElementById("overlay").classList.remove("visible");
            document.getElementById("overlay").classList.add("hidden");
 
-         }
+      }
 
 
 
@@ -1598,7 +1619,7 @@ class DatabaseManager {
   async saveLocalDatabase() {
 
     let r = this.getRecordByID(graphicsManager.activeInformationID)
-    console.log(r)
+    //console.log(r)
 
     if (r !== null && r !== undefined)   {
 
@@ -1691,6 +1712,33 @@ class DatabaseManager {
 
       }
 
+    })
+
+  }
+
+
+
+  uploadImage(imageFile) {
+
+    return new Promise(async (resolve, reject) => {
+
+      let formData = new FormData();
+      formData.append("file", imageFile);
+
+      var requestOptions = {
+        method: 'POST',
+        body: formData,
+        redirect: 'follow'
+      };
+
+      let imageUrl = "https://image-worker.eveapp2021.workers.dev/images/upload"
+      if (IS_DEVELOPMENT)
+        imageUrl = "http://127.0.0.1:8787/images/upload"
+      
+      let response = await fetch(imageUrl, requestOptions)
+      let responseJson = await response.json()
+      resolve(responseJson)
+      
     })
 
   }
@@ -2432,12 +2480,16 @@ class GraphicsManager {
 
     this.isLightModeEnabled = true;
     this.isNotZenModeEnabled = true;
+
     this.activeInformationID = -1; // ID of current cloze / text extract or imageOcclusion.
+    this.activeImageURL = -1; // URL of current image 
+
     this.lastRightClickedItemID = -1;
     this.lastRightClickedSimilarContentID = -1 // ID of last right clicked item in right sidebar.
-
     this.lastMenuItemClicked = 0 // Last id of clicked menu item in the sidebar.
-    this.lastActiveImageOcclusionURL = ""; // URL of last displayed image occlusion.
+    this.lastActiveImageID = -1; // Last active image ID
+    this.lastActiveImageURL = ""; // URL of last displayed image occlusion.
+
     this.writtenCharCount = 0; // Autosave database when len > 25
 
     //PERMISSIONS
@@ -2978,7 +3030,10 @@ class GraphicsManager {
       })
 
       const dataID = item.getAttribute("data-id")
-      const r = databaseManager.getRecordByID(dataID)
+    const r = databaseManager.getRecordByID(dataID)
+    
+    console.log("onClickExplorerItem, dataID: " + dataID)
+    console.log("r.id: " + r.id)
 
       if (r.contentType == "Occlusion") {
 
@@ -4445,12 +4500,17 @@ class GraphicsManager {
   async onImageSidebarClicked(e) {
 
     const file = await this.getFileFromURL(e.target.src)
-    const filename = await databaseManager.uploadFile(file)
-    this.lastActiveImageOcclusionURL = filename
+    const fileUrl = e.target.url;
+    const fileName = await databaseManager.uploadFile(file)
+    this.lastActiveImageURL = fileName
+
+    console.log("Opening image, file: " + file)
+    console.log("Opening image, fileUrl: " + fileUrl)
+    console.log("Opening image, fileName: " + fileName)
 
     let image = new Image()
     image.crossOrigin = "anonymous"
-    image.src = BASE_URL + filename
+    image.src = fileUrl
     image.onload = () => this.updateOcclusionCreateCanvas(image)
 
   }
@@ -4502,7 +4562,7 @@ class GraphicsManager {
     let record = databaseManager.getRecordByID(id)
     let image = new Image()
 
-    image.src = BASE_URL + record.url
+    image.src = record.url
     image.onload = () => {
       
       let canvas = document.getElementById("modalbox-occlusion-learning-canvas")
@@ -5341,9 +5401,6 @@ let handleDocumentImport = async e => {
       else if (e.type == "paste")
         imageFile = e.clipboardData.files[0]
 
-      console.log(e)
-      console.log(imageFile)
-
       let image = new Image()
       image.crossOrigin = "anonymous"
       reader = new FileReader()
@@ -5354,11 +5411,15 @@ let handleDocumentImport = async e => {
       reader.readAsDataURL(imageFile)
       image.onload = () =>  graphicsManager.updateOcclusionCreateCanvas(image)
 
-      const filename = createID(6) + "." + imageFile.type.split("/")[1] 
-      graphicsManager.lastActiveImageOcclusionURL = filename
-      const path = BASE_URL + filename
-      const response = await databaseManager.uploadFile(imageFile, path)
-      console.log("Upload completed: " + response)
+      const response = await databaseManager.uploadImage(imageFile)
+      const fileExtension = imageFile.type.split("/")[1]
+      const fileUrl = response.url
+      const fileName = createID(6) + "." + fileExtension
+
+      graphicsManager.lastActiveImageID = fileName
+      graphicsManager.lastActiveImageURL = fileUrl
+      console.log("Image upload completed, lastActiveImageID: " + fileName)
+      console.log("Image upload completed, lastActiveImageURL: " + fileUrl)
 
     }
 
@@ -5628,7 +5689,7 @@ function setTheme(theme = "homebrew") {
     image.classList.remove("filter-homebrew")
 
     if(theme !== "day")
-    image.classList.add("filter-"+theme)
+      image.classList.add("filter-"+theme)
 
   });
 
@@ -5699,21 +5760,25 @@ document.getElementById("mainwindow-padding-slider").addEventListener("input", e
 
   databaseManager.database.profile.mainWindowPadding = e.target.value
   document.documentElement.style.setProperty('--mainWindow-padding', e.target.value + "px");
-  console.log(document.documentElement.style.getPropertyValue("--mainWindow-padding"))
 
 })
 document.getElementById("leftsidebar-padding-slider").addEventListener("input", e => {
 
   databaseManager.database.profile.leftSidebarPadding = e.target.value
   document.documentElement.style.setProperty('--leftSidebar-padding', e.target.value + "px");
-  console.log(document.documentElement.style.getPropertyValue("--leftSidebar-padding"))
 
 })
 document.getElementById("rightsidebar-padding-slider").addEventListener("input", e => {
 
   databaseManager.database.profile.rightSidebarPadding = e.target.value
   document.documentElement.style.setProperty('--rightSidebar-padding', e.target.value + "px");
-  console.log(document.documentElement.style.getPropertyValue("--rightSidebar-padding"))
+
+})
+
+document.getElementById("font-size-slider").addEventListener("input", e => {
+
+  databaseManager.database.profile.fontSize = e.target.value
+  document.documentElement.style.setProperty('--font-size', e.target.value + "px");
 
 })
 
@@ -5832,8 +5897,13 @@ document.onkeydown = function(e){
 
       e.preventDefault()
 
-      databaseManager.addImageOcclusions(false, graphicsManager.lastActiveImageOcclusionURL, graphicsManager.activeOcclusionsList);
-      graphicsManager.renderFolders()
+    databaseManager.addImageOcclusions(
+      false,
+      graphicsManager.lastActiveImageID,
+      graphicsManager.lastActiveImageURL,
+      graphicsManager.activeOcclusionsList);
+      
+    graphicsManager.renderFolders()
 
   } else if(keycode == createSeparateOcclusionS.keyCode &&
     (e.ctrlKey == createSeparateOcclusionS.ctrlKey ||
@@ -5842,7 +5912,12 @@ document.onkeydown = function(e){
 
       e.preventDefault();
 
-      databaseManager.addImageOcclusions(true, graphicsManager.lastActiveImageOcclusionURL, graphicsManager.activeOcclusionsList);
+    databaseManager.addImageOcclusions(
+      true,
+      graphicsManager.lastActiveImageID,
+      graphicsManager.lastActiveImageURL,
+      graphicsManager.activeOcclusionsList);
+    
       graphicsManager.renderFolders()
     
 
@@ -6080,7 +6155,7 @@ window.mobileCheck = function() {
 function onGradeItemClicked(e) {
 
 
-      console.log(e.target.id)
+  
 
       if (["modalbox-occlusion-learning-canvas", "learning-btn1", "learning-btn2", "learning-btn3",
       "learning-btn4", "learning-btn5", "learning-btn6", "learning-btn7", "learning-flag-item", "learning-show-answer"].includes(e.target.id)) {
@@ -6255,13 +6330,27 @@ function readPDF(url = "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edea
 
 
 
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  
+  const theme = e.matches ? "dark" : "light";
+  if (theme == "dark")
+    setTheme("homebrew")
+  else
+    setTheme("day")
+  
+});
+
+
 // Entry point of script file.
-window.onload = async function() {
+window.onload = async function () {
+  
+
   
 
   document.addEventListener("touchend", onGradeItemClicked, false)
   document.addEventListener("click", onGradeItemClicked, false)
 
+  
   if (await localforage.getItem("username")) {
 
     const username = await localforage.getItem("username")
