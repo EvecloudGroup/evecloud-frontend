@@ -78,7 +78,7 @@
   "devDependencies": {
     "@electron-forge/cli": "6.0.3",
     "electron": "23.1.0",
-    "electron-builder": "23.6.0",
+    "electron-builder": "24.2.1",
     "semantic-release": "^19.0.5"
   },
   "repository": {
